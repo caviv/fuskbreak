@@ -15,7 +15,7 @@ But, alas, there are some problems. The upper ads go on top of the content, maki
 
 **Summary of the problems in break.com**
 
-*   Videos doen't not load (chrome on linux)
+*   Videos does not load (chrome on linux)
 *   Wide and high top ad over the content !
 
 **Here are images of the problem in break.com**
