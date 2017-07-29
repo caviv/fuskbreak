@@ -20,8 +20,8 @@ But, alas, there are some problems. The upper ads go on top of the content, maki
 
 **Here are images of the problem in break.com**
 
-*   [![Top ad hiding the content](https://www.c2kb.com/fuskbreak/error1.jpg)](https://www.c2kb.com/fuskbreak/error1.jpg)
-*   [![Video does not load](https://www.c2kb.com/fuskbreak/error2.jpg)](https://www.c2kb.com/fuskbreak/error2.jpg)
+*   [![Top ad hiding the content](https://www.c2kb.com/fuskbreak/error1.jpg | width=48)](https://www.c2kb.com/fuskbreak/error1.jpg)
+*   [![Video does not load](https://www.c2kb.com/fuskbreak/error2.jpg | width=48)](https://www.c2kb.com/fuskbreak/error2.jpg)
 
 ## The solution: A Fuskator for break.com
 
@@ -29,8 +29,8 @@ This is why I have created fuskbreak !, fuskbreak is a piece of software writte 
 
 **The results of fuskbreak**
 
-*   [![Just a clean page with direct links to videos - No ads](https://www.c2kb.com/fuskbreak/fuskbreak1.jpg)](https://www.c2kb.com/fuskbreak/fuskbreak1.jpg)
-*   [![Videos loads directly](https://www.c2kb.com/fuskbreak/fuskbreak2.jpg)](https://www.c2kb.com/fuskbreak/fuskbreak2.jpg)
+*   [![Just a clean page with direct links to videos - No ads](https://www.c2kb.com/fuskbreak/fuskbreak1.jpg | width=48)](https://www.c2kb.com/fuskbreak/fuskbreak1.jpg)
+*   [![Videos loads directly](https://www.c2kb.com/fuskbreak/fuskbreak2.jpg | width=48)](https://www.c2kb.com/fuskbreak/fuskbreak2.jpg)
 
 No bullshit. Just clean links directly to the videos.
 
