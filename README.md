@@ -43,11 +43,11 @@ No bullshit. Just clean links directly to the videos.
 **Download location for fuskbreak**
 
 *   [fuskbreak - github repository](https://github.com/caviv/fuskbreak)
-*   [fuskbreak.exe - Windows 64](fuskbreak.exe)
-*   [fuskbreak.exe - Windows 32](fuskbreak32.exe)
-*   [fuskbreak - Linux 64](fuskbreak)
-*   [fuskbreak - Linux 32](fuskbreak32)
-*   [fuskbreak - iOS](fuskbreakmac)
+*   [fuskbreak.exe - Windows 64](https://www.c2kb.com/fuskbreak)
+*   [fuskbreak.exe - Windows 32](https://www.c2kb.com/fuskbreak)
+*   [fuskbreak - Linux 64](https://www.c2kb.com/fuskbreak)
+*   [fuskbreak - Linux 32](https://www.c2kb.com/fuskbreak)
+*   [fuskbreak - iOS](https://www.c2kb.com/fuskbreak)
 
 ## fuskbreak Usage
 
