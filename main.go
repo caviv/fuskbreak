@@ -56,7 +56,7 @@ func PageCreator(url string) Page {
 }
 
 // get all items
-func (p *Page) GetItems() map[string]string {
+func (p *Page) GetItems(size int) map[string]string {
 	var err error = nil
 
 	// compile selector
@@ -78,6 +78,10 @@ func (p *Page) GetItems() map[string]string {
 		}
 		//fmt.Println("HREF:", href)
 		p.Hrefs[href] = href
+		size--
+		if size == 0 {
+			break
+		}
 	}
 
 	return p.Hrefs
@@ -132,7 +136,7 @@ func (p *Page) GetByType() {
 	case "video":
 		p.GetVideo()
 	default:
-		p.GetItems()
+		//p.GetItems()
 	}
 }
 
@@ -193,33 +197,28 @@ func main() {
 	// fetch main pages
 	log.Println("START fuskbreak version:" + version)
 	mainPage := PageCreator("http://www.break.com")
-	items := mainPage.GetItems()
+	items := mainPage.GetItems(size)
 	//fmt.Println("Found Items", len(*items))
 
 	for page := 1; len(items) < size; page++ {
 		nextPage := PageCreator("http://www.break.com/" + strconv.Itoa(page))
-		for k, v := range nextPage.GetItems() { // merging maps
+		for k, v := range nextPage.GetItems(size) { // merging maps
 			items[k] = v
 		}
 	}
 
 	// start fetching items (using go routines)
 	log.Println("Found ", len(items), " items")
-	total := size
 	ch := make(chan string)
 	for _, url := range items {
 		go fetcher(url, &mainPage, ch)
-		size--
-		if size == 0 {
-			break
-		}
 	}
 
 	// waiting for fetchers to finish
 	log.Println("Waiting ...")
-	for ; size < total; size++ {
+	for ; size > 0; size-- {
 		url := <-ch
-		log.Println("Received: ", url)
+		log.Println(size, ". Received: ", url)
 	}
 
 	// echo results to the screen
