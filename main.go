@@ -15,15 +15,15 @@ const version string = "1.0"
 
 // --------------------------------------------------------------------------
 type Page struct {
-	Url       string            // page url
-	Type      string            // video / pictures
-	Text      *string           // the html text of the page
-	Dom       *html.Node        // the page converted to dom
-	Hrefs     map[string]string // all items
-	Title     string            // meta=description content
-	Thumbnail string            // meta[property="og:image"] content
-	VideoUri  string            // link to the video directly
-	SubPages  map[string]*Page  // Sub Pages
+	Url       string           // page url
+	Type      string           // video / pictures
+	Text      *string          // the html text of the page
+	Dom       *html.Node       // the page converted to dom
+	Title     string           // meta=description content
+	Thumbnail string           // meta[property="og:image"] content
+	VideoUri  string           // link to the video directly
+	SubPages  map[string]*Page // Sub Pages
+	FifoPages []*string        // Sub Pages
 }
 
 // create a page
@@ -52,11 +52,11 @@ func PageCreator(url string) Page {
 		log.Fatal(err)
 	}
 
-	return Page{Url: url, Type: Type, Text: text, Dom: dom, Hrefs: make(map[string]string), SubPages: make(map[string]*Page)}
+	return Page{Url: url, Type: Type, Text: text, Dom: dom, SubPages: make(map[string]*Page)}
 }
 
 // get all items
-func (p *Page) GetItems(size int) map[string]string {
+func (p *Page) GetItems(size int) map[string]*Page {
 	var err error = nil
 
 	// compile selector
@@ -76,15 +76,21 @@ func (p *Page) GetItems(size int) map[string]string {
 		if err != nil {
 			log.Fatal(err)
 		}
-		//fmt.Println("HREF:", href)
-		p.Hrefs[href] = href
-		size--
-		if size == 0 {
-			break
+
+		log.Println("HREF:", href)
+
+		_, ok := p.SubPages[href]
+		if !ok {
+			p.SubPages[href] = nil
+			p.FifoPages = append(p.FifoPages, &href)
+			size--
+			if size == 0 {
+				break
+			}
 		}
 	}
 
-	return p.Hrefs
+	return p.SubPages
 }
 
 func (p *Page) GetInfo() {
@@ -148,7 +154,7 @@ func (p *Page) GetHTML(n int) string {
 	var str string
 
 	if p.Type == "" {
-		str += "<!doctype html><html><head><title>break.com fuskator</title><style>html {text-align: center} footer {padding: 40px}</style></head><body><h1>break.com fuskator</h1>"
+		str += "<!doctype html><html><head><title>break.com fuskator</title><meta charset=\"UTF-8\"><style>html {text-align: center} footer {padding: 40px}</style></head><body><h1>break.com fuskator</h1>"
 	}
 
 	str += "<hr><section><a href=\"" + p.Url + "\" target=\"blank\"><h1>" + strconv.Itoa(n) + ". " + p.Title + "</a></h1>"
@@ -162,9 +168,12 @@ func (p *Page) GetHTML(n int) string {
 	str += "</section>"
 
 	n = 0
-	for _, subPage := range p.SubPages {
-		n++
-		str += subPage.GetHTML(n)
+	for _, href := range p.FifoPages {
+		subPage, ok := p.SubPages[*href]
+		if subPage != nil && ok {
+			str += subPage.GetHTML(n)
+			n++
+		}
 	}
 
 	if p.Type == "" {
@@ -210,7 +219,7 @@ func main() {
 	// start fetching items (using go routines)
 	log.Println("Found ", len(items), " items")
 	ch := make(chan string)
-	for _, url := range items {
+	for url, _ := range items {
 		go fetcher(url, &mainPage, ch)
 	}
 
