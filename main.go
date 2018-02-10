@@ -128,7 +128,7 @@ func (p *Page) GetVideo() {
 	}
 
 	embedPage := PageCreator(*embedURL)
-	p.VideoURI = pager.StupidJSON("VideoURI", *embedPage.Text)
+	p.VideoURI = pager.StupidJSON("videoUri", *embedPage.Text)
 	p.VideoURI = strings.Replace(p.VideoURI, "496_kbps", "864_kbps", 1) // upgrade the kbps
 
 	//log.Println("VideoURI:", p.VideoURI)
@@ -213,7 +213,7 @@ func main() {
 			continue
 		}
 
-		str += "<hr><section><a href=\"" + p.Url + "\" target=\"blank\"><h1>" + strconv.Itoa(n) + ". " + p.Title + "</a></h1>"
+		str += "<hr><section><a href=\"" + p.Url + "\" target=\"blank\"><h1>" + strconv.Itoa(n) + ". " + p.Title + " (" + p.Type + ") </a></h1>"
 		if p.VideoURI != "" {
 			str += "<br><a href=\"" + p.VideoURI + "\" target=\"blank\"><img src=\"" + p.Thumbnail + "\" style=\"width:25%\"></a>"
 		} else {
