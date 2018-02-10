@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/andybalholm/cascadia"
-	"golang.org/x/net/html"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/andybalholm/cascadia"
+	"golang.org/x/net/html"
 )
 
-// fetch one page and parse it as html
+// GetPage fetch one page and parse it as html
 func GetPage(url string) (*string, error) {
 	response, err := http.Get(url)
 	if err != nil {
@@ -29,7 +30,7 @@ func GetPage(url string) (*string, error) {
 	return &str, nil
 }
 
-// fetch one page and parse it as html
+// GetPageDom fetch one page and parse it as html
 func GetPageDom(url string) (*html.Node, error) {
 	page, err := GetPage(url)
 	if err != nil {
@@ -39,7 +40,7 @@ func GetPageDom(url string) (*html.Node, error) {
 	return html.Parse(strings.NewReader(*page))
 }
 
-// Find the fisrt href attribute and return it's value with-in a string
+// ParseHref Find the fisrt href attribute and return it's value with-in a string
 func ParseHref(str string) (string, error) {
 	inx := strings.Index(str, "href=\"")
 	if inx < 0 {
@@ -53,8 +54,9 @@ func ParseHref(str string) (string, error) {
 	return string(str[:end]), nil
 }
 
-func StupidJson(key string, str string) string {
-	//str := *s
+// StupidJSON extract video link from json in a stupid way
+func StupidJSON(key string, str string) string {
+	//log.Print(" -- video -- ", str)
 	key = fmt.Sprintf("\"%v\":", key)
 	inx := strings.Index(str, key)
 	if inx < 0 {
@@ -74,6 +76,7 @@ func StupidJson(key string, str string) string {
 
 // -----------------------------------------
 
+// GetAttr - finds attribute
 func GetAttr(n *html.Node, key string) *string {
 	if n != nil {
 		for _, attr := range n.Attr {
@@ -85,14 +88,14 @@ func GetAttr(n *html.Node, key string) *string {
 	return nil
 }
 
-// cascadia helper for converting a html.Node to a string
+// NodeString cascadia helper for converting a html.Node to a string
 func NodeString(n *html.Node) string {
 	buf := bytes.NewBufferString("")
 	html.Render(buf, n)
 	return buf.String()
 }
 
-// cascadia wrappers
+// CascadiaWrapper cascadia wrappers
 func CascadiaWrapper(doc *string, selector string) (*[]string, error) {
 	html, err := html.Parse(strings.NewReader(*doc))
 	if err != nil {

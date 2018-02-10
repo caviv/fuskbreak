@@ -3,30 +3,34 @@ package main
 import (
 	"fmt"
 	"fuskbreak/pager"
-	"github.com/andybalholm/cascadia"
-	"golang.org/x/net/html"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/andybalholm/cascadia"
+	"golang.org/x/net/html"
 )
 
-const version string = "1.0"
+const version string = "1.1"
 
-// --------------------------------------------------------------------------
+// Page is the main page struct
 type Page struct {
-	Url       string           // page url
-	Type      string           // video / pictures
-	Text      *string          // the html text of the page
-	Dom       *html.Node       // the page converted to dom
-	Title     string           // meta=description content
-	Thumbnail string           // meta[property="og:image"] content
-	VideoUri  string           // link to the video directly
-	SubPages  map[string]*Page // Sub Pages
-	FifoPages []*string        // Sub Pages
+	Url       string     // page url
+	Type      string     // video / pictures
+	Text      *string    // the html text of the page
+	Dom       *html.Node // the page converted to dom
+	Title     string     // meta=description content
+	Thumbnail string     // meta[property="og:image"] content
+	VideoURI  string     // link to the video directly
 }
 
-// create a page
+type mapPages map[string]*Page
+
+var subPages mapPages  // Sub Pages
+var fifoPages []string // Sub Pages
+
+// PageCreator create a page
 func PageCreator(url string) Page {
 	//log.Print("Fethcing Page: ", url)
 
@@ -52,12 +56,13 @@ func PageCreator(url string) Page {
 		log.Fatal(err)
 	}
 
-	return Page{Url: url, Type: Type, Text: text, Dom: dom, SubPages: make(map[string]*Page)}
+	return Page{Url: url, Type: Type, Text: text, Dom: dom}
 }
 
-// get all items
-func (p *Page) GetItems(size int) map[string]*Page {
-	var err error = nil
+// GetItems get all items
+func (p *Page) GetItems(size int) []string {
+	var err error
+	var hrefs []string
 
 	// compile selector
 	s, err := cascadia.Compile(".Timestream-item a")
@@ -79,22 +84,15 @@ func (p *Page) GetItems(size int) map[string]*Page {
 
 		log.Println("HREF:", href)
 
-		_, ok := p.SubPages[href]
-		if !ok {
-			p.SubPages[href] = nil
-			p.FifoPages = append(p.FifoPages, &href)
-			size--
-			if size == 0 {
-				break
-			}
-		}
+		hrefs = append(hrefs, href)
 	}
 
-	return p.SubPages
+	return hrefs
 }
 
+// GetInfo get info on the page
 func (p *Page) GetInfo() {
-	var err error = nil
+	var err error
 
 	// compile selectors
 	sDescription, err := cascadia.Compile("meta[name=\"description\"]")
@@ -113,8 +111,9 @@ func (p *Page) GetInfo() {
 
 }
 
+// GetVideo gets the video
 func (p *Page) GetVideo() {
-	var err error = nil
+	var err error
 
 	// compile selectors
 	sDescription, err := cascadia.Compile("meta[name=\"embed_video_url\"]")
@@ -122,18 +121,20 @@ func (p *Page) GetVideo() {
 		log.Fatal(err)
 	}
 	match := sDescription.MatchFirst(p.Dom)
-	embedUrl := pager.GetAttr(match, "content")
-	if embedUrl == nil {
+	embedURL := pager.GetAttr(match, "content")
+	if embedURL == nil {
 		log.Println("embed_video_url Not found in page")
 		return
 	}
 
-	embedPage := PageCreator(*embedUrl)
-	p.VideoUri = pager.StupidJson("videoUri", *embedPage.Text)
+	embedPage := PageCreator(*embedURL)
+	p.VideoURI = pager.StupidJSON("VideoURI", *embedPage.Text)
+	p.VideoURI = strings.Replace(p.VideoURI, "496_kbps", "864_kbps", 1) // upgrade the kbps
 
-	//log.Println("videoUri:", p.VideoUri)
+	//log.Println("VideoURI:", p.VideoURI)
 }
 
+// GetByType get page by it's type
 func (p *Page) GetByType() {
 	p.GetInfo()
 	switch p.Type {
@@ -146,49 +147,13 @@ func (p *Page) GetByType() {
 	}
 }
 
-func (p *Page) AddSubPage(subPage *Page) {
-	p.SubPages[subPage.Url] = subPage
-}
-
-func (p *Page) GetHTML(n int) string {
-	var str string
-
-	if p.Type == "" {
-		str += "<!doctype html><html><head><title>break.com fuskator</title><meta charset=\"UTF-8\"><style>html {text-align: center} footer {padding: 40px}</style></head><body><h1>break.com fuskator</h1>"
-	}
-
-	str += "<hr><section><a href=\"" + p.Url + "\" target=\"blank\"><h1>" + strconv.Itoa(n) + ". " + p.Title + "</a></h1>"
-
-	if p.VideoUri != "" {
-		str += "<br><a href=\"" + p.VideoUri + "\" target=\"blank\"><img src=\"" + p.Thumbnail + "\" style=\"width:25%\"></a>"
-	} else {
-		str += "<br><a href=\"" + p.Url + "\" target=\"blank\"><img src=\"" + p.Thumbnail + "\" style=\"width:25%\"></a>"
-	}
-
-	str += "</section>"
-
-	n = 0
-	for _, href := range p.FifoPages {
-		subPage, ok := p.SubPages[*href]
-		if subPage != nil && ok {
-			str += subPage.GetHTML(n)
-			n++
-		}
-	}
-
-	if p.Type == "" {
-		str += "<br><br><footer>Made by fuskbreak (Cnaan Aviv)</footer></body></html>"
-	}
-	return str
-}
-
 // --------------------------------------------------------------------------
 
-func fetcher(url string, mainPage *Page, ch chan string) {
+func fetcher(url string, pages *mapPages, ch chan string) {
 	log.Println("Fetcher: ", url)
 	page := PageCreator(url)
 	page.GetByType()
-	mainPage.AddSubPage(&page)
+	(*pages)[url] = &page
 	ch <- url
 }
 
@@ -203,35 +168,63 @@ func main() {
 		log.Fatal("Error: ", err)
 	}
 
+	subPages = make(mapPages)
+
 	// fetch main pages
 	log.Println("START fuskbreak version:" + version)
-	mainPage := PageCreator("http://www.break.com")
-	items := mainPage.GetItems(size)
-	//fmt.Println("Found Items", len(*items))
-
-	for page := 1; len(items) < size; page++ {
+	for page := 0; len(fifoPages) < size; page++ {
 		nextPage := PageCreator("http://www.break.com/" + strconv.Itoa(page))
-		for k, v := range nextPage.GetItems(size) { // merging maps
-			items[k] = v
+		moreItems := nextPage.GetItems(size)
+		for _, href := range moreItems { // merging maps and adding to mainPage
+			_, ok := subPages[href]
+			if !ok {
+				subPages[href] = nil
+				fifoPages = append(fifoPages, href)
+			}
+
 		}
+		log.Println("Current items: ", len(fifoPages), " items")
 	}
 
 	// start fetching items (using go routines)
-	log.Println("Found ", len(items), " items")
+	log.Println("Found ", len(fifoPages), " items")
+
 	ch := make(chan string)
-	for url, _ := range items {
-		go fetcher(url, &mainPage, ch)
+	for _, url := range fifoPages {
+		go fetcher(url, &subPages, ch)
 	}
 
 	// waiting for fetchers to finish
 	log.Println("Waiting ...")
-	for ; size > 0; size-- {
+	for size = len(fifoPages); size > 0; size-- {
 		url := <-ch
 		log.Println(size, ". Received: ", url)
 	}
 
 	// echo results to the screen
-	fmt.Println(mainPage.GetHTML(0))
+	var str string
+	str += "<!doctype html><html><head><title>break.com fuskator</title><meta charset=\"UTF-8\"><style>html {text-align: center} footer {padding: 40px}</style></head><body><h1>break.com fuskator</h1>"
+
+	n := 0
+	for _, url := range fifoPages {
+		n++
+		p, ok := subPages[url]
+		if !ok || p == nil {
+			continue
+		}
+
+		str += "<hr><section><a href=\"" + p.Url + "\" target=\"blank\"><h1>" + strconv.Itoa(n) + ". " + p.Title + "</a></h1>"
+		if p.VideoURI != "" {
+			str += "<br><a href=\"" + p.VideoURI + "\" target=\"blank\"><img src=\"" + p.Thumbnail + "\" style=\"width:25%\"></a>"
+		} else {
+			str += "<br><a href=\"" + p.Url + "\" target=\"blank\"><img src=\"" + p.Thumbnail + "\" style=\"width:25%\"></a>"
+		}
+		str += "</section>"
+	}
+
+	str += "<br><br><footer>Made by fuskbreak (Cnaan Aviv)</footer></body></html>"
+
+	fmt.Println(str)
 
 	log.Println("END")
 }
